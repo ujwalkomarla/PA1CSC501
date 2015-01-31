@@ -3,6 +3,13 @@
 #ifndef _KERNEL_H_
 #define _KERNEL_H_
 
+////
+/* Scheduling classes */
+#define LINUXSCHED 1
+#define MULTIQSCHED 2 
+////
+
+
 /* Symbolic constants used throughout Xinu */
 
 typedef	char		Bool;		/* Boolean type			*/
@@ -77,7 +84,10 @@ typedef short	STATWORD[1];	/* machine status for disable/restore	*/
 
 extern	int	rdyhead, rdytail;
 extern	int	preempt;
-
+////
+/* SCHEDULER Values*/
+extern int schedClass;
+////
 /* Include types and configuration information */
 
 #include <systypes.h>
@@ -154,7 +164,10 @@ SYSCALL stacktrace(int pid);
 SYSCALL	suspend(int pid);
 SYSCALL	unsleep(int pid);
 SYSCALL	wait(int sem);
-
+////
+SYSCALL setschedclass(int valSchedClass);
+SYSCAKK getschedclass(void);
+////
 int strtclk();
 int stopclk();
 

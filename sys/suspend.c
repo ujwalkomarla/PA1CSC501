@@ -26,7 +26,11 @@ SYSCALL	suspend(int pid)
 		pptr->pstate = PRSUSP;
 		dequeue(pid);
 	}
-	else {
+	else if(pptr->pstate == PRCURR){// For syscall done by user /*IMPORTANT*/
+		pptr->pstate = PRSUSP;
+		dequeue(pid);
+		resched();
+	}else{
 		pptr->pstate = PRSUSP;
 		resched();
 	}

@@ -60,6 +60,11 @@ struct	pentry	{
 	int	fildes[_NFILE];		/* file - device translation	*/
 	int	ppagedev;		/* pageing dgram device		*/
 	int	pwaitret;
+	////
+	int quantum;	/*Quantum of epoch left for the process*/
+	int goodness;	/*Goodness of the process*/
+	int realtime;	/*Bool Value. (PA1 : Part 2)*/
+	////
 };
 
 

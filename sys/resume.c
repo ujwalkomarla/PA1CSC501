@@ -21,7 +21,10 @@ SYSCALL resume(int pid)
 		return(SYSERR);
 	}
 	prio = pptr->pprio;
-	ready(pid, RESCHYES);
+	////
+	//ready(pid, RESCHNO); // So that, the newly created process is not executed untill the next epoch
+	pptr->pstate = PRREADY;
+	////
 	restore(ps);
 	return(prio);
 }

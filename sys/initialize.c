@@ -26,7 +26,10 @@ extern	int	pci_init();
 extern	int	mon_init();
 extern	int	ripinit();
 LOCAL   int	sysinit();
-
+/* Declarations for scheduling */
+////
+unsigned int schedClass;
+////
 /* Declarations of major kernel variables */
 struct	pentry	proctab[NPROC]; /* process table			*/
 int	nextproc;		/* next process slot to use in create	*/
@@ -133,7 +136,9 @@ LOCAL int sysinit()
 	nextproc = NPROC-1;
 	nextsem = NSEM-1;
 	nextqueue = NPROC;		/* q[0..NPROC-1] are processes */
-
+	////
+	setschedclass(LINUXSCHED);
+	////
 	/* initialize free memory list */
 	/* PC version has to pre-allocate 640K-1024K "hole" */
 	if (maxaddr+1 > (char *)HOLESTART) {
@@ -170,6 +175,12 @@ LOCAL int sysinit()
 	pptr->paddr = (WORD) nulluser;
 	pptr->pargs = 0;
 	pptr->pprio = 0;
+	////
+	pptr->goodness = 0;
+	pptr->quantum = 0;
+	pptr->realtime = 0;
+	////
+	
 	currpid = NULLPROC;
 
 	for (i=0 ; i<NSEM ; i++) {	/* initialize semaphores */
