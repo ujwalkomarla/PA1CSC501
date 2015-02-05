@@ -69,7 +69,7 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	
 	////
 	pptr->goodness = 0;
-	pptr->quantum = priority;
+	pptr->quantum = 0;
 	pptr->realtime = FALSE;
 	////
 		
@@ -178,7 +178,7 @@ SYSCALL createReal(procaddr,ssize,priority,name,nargs,args)
 	
 	////
 	pptr->goodness = 0;
-	pptr->quantum = priority;
+	pptr->quantum = 0;
 	pptr->realtime = TRUE;
 	////
 		

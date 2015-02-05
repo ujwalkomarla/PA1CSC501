@@ -81,12 +81,12 @@ typedef short	STATWORD[1];	/* machine status for disable/restore	*/
 #define	isodd(x)	(01&(WORD)(x))
 #define	min(a,b)	( (a) < (b) ? (a) : (b) )
 #define	max(a,b)	( (a) > (b) ? (a) : (b) )
-
+extern unsigned int epoch;
 extern	int	rdyhead, rdytail;
 extern	int	preempt;
 ////
 /* SCHEDULER Values*/
-extern int schedClass;
+extern unsigned int schedClass;
 ////
 /* Include types and configuration information */
 
@@ -166,7 +166,7 @@ SYSCALL	unsleep(int pid);
 SYSCALL	wait(int sem);
 ////
 SYSCALL setschedclass(int valSchedClass);
-SYSCAKK getschedclass(void);
+SYSCALL getschedclass(void);
 ////
 int strtclk();
 int stopclk();

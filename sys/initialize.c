@@ -29,6 +29,7 @@ LOCAL   int	sysinit();
 /* Declarations for scheduling */
 ////
 unsigned int schedClass;
+unsigned int epoch;
 ////
 /* Declarations of major kernel variables */
 struct	pentry	proctab[NPROC]; /* process table			*/
@@ -113,10 +114,11 @@ int nulluser()				/* babysit CPU when no one home */
 	enable();		/* enable interrupts */
 
 	open(CONSOLE, console_dev, 0);
-
+	kprintf("numproc = %d\r\n",numproc);
 	/* create a process to execute the user's main program */
         resume(create((int *)main,INITSTK,INITPRIO,INITNAME,INITARGS));
-
+		//resched(); //reschd called when preempt hits 0.
+		kprintf("numproc = %d\r\n",numproc);
 	while (TRUE)
 		/* empty */;
 }
@@ -177,10 +179,10 @@ LOCAL int sysinit()
 	pptr->pprio = 0;
 	////
 	pptr->goodness = 0;
-	pptr->quantum = 0;
+	pptr->quantum = QUANTUM;//Whenever, NULL process runs, it will run with quantum of 10.
 	pptr->realtime = 0;
 	////
-	
+	epoch = QUANTUM;
 	currpid = NULLPROC;
 
 	for (i=0 ; i<NSEM ; i++) {	/* initialize semaphores */
