@@ -23,8 +23,9 @@ int resched()
 	if(schedClass == LINUXSCHED){
 		if(0==numproc){
 			optr= &proctab[currpid];
-			nptr = &proctab[0];
+			nptr = &proctab[getlast(rdytail)];
 			nptr->pstate = PRCURR;		/* mark it currently running	*/
+			//nptr->quantum = QUANTUM;
 			#ifdef	RTCLOCK
 			preempt = QUANTUM;		/* reset preemption counter	*/
 			#endif
@@ -77,23 +78,8 @@ int resched()
 				}
 			}
 			
-			if(EMPTY==(currpid = getlast(rdytail)) || 0=>epoch){
-				register struct pentry *pptr;
-				int i;
-				epoch = 0;
-				for(i=1;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
-					if((pptr = & proctab[i])->pstate != PRFREE){
-						//epoch+ = pptr->pprio;
-						epoch+= pptr->quantum = (pptr->quantum==0)?pptr->pprio:(pptr->pprio + (pptr->quantum)/2);
-						pptr->goodness = (pptr->quantum == 0)?0:(pptr->pprio + pptr->quantum);
-						
-					}
-					if(pptr->pstate == PRREADY){
-						// enqueue or insert
-						insert(i,rdyhead,pptr->goodness);
-					}
-				}
-				currpid = getlast(rdytail);
+			if(0==(currpid = getlast(rdytail)) || 0>=epoch){
+				ProcQueueInit();
 			}
 			
 			/* remove highest priority process at end of ready list */
@@ -105,7 +91,7 @@ int resched()
 			#endif
 		}
 		
-		kprintf("currpid : %d \r\n",currpid);
+		//kprintf("currpid : %d \r\n",currpid);
 	}else{
 	
 	}
@@ -114,4 +100,24 @@ int resched()
 	
 	/* The OLD process returns here when resumed. */
 	return OK;
+}
+
+LOCAL void ProcQueueInit(void){
+
+	register struct pentry *pptr;
+	int i;
+	epoch = 0;
+	for(i=0;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
+		if((pptr = & proctab[i])->pstate != PRFREE){
+			//epoch+ = pptr->pprio;
+			epoch+= pptr->quantum = (pptr->quantum==0)?pptr->pprio:(pptr->pprio + (pptr->quantum)/2);
+			pptr->goodness = (pptr->quantum == 0)?0:(pptr->pprio + pptr->quantum);
+			
+		}
+		if(pptr->pstate == PRREADY){
+			// enqueue or insert
+			insert(i,rdyhead,pptr->goodness);
+		}
+	}
+	currpid = getlast(rdytail);
 }
