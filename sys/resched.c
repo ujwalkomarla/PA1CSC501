@@ -20,13 +20,88 @@ extern int ctxsw(int, int, int, int);
  */
 
 
+LOCAL int fLinuxSched(struct pentry **optr,struct pentry **nptr){
+	////
+	//Reduce quantum by used value.
+		epoch-= ((*optr= &proctab[currpid])->quantum - preempt);
+		//kprintf("%s Process: %d Initial Quantum, %d Left Quantum(Preempt)\r\n",optr->pname,optr->quantum,preempt);
+		(*optr)->quantum = preempt;
+		(*optr)->goodness = ((*optr)->quantum == 0)?0:((*optr)->tPriority + (*optr)->quantum);
+	////
 	
+	if(0>=preempt){
+		/* force context switch */
+		if ((*optr)->pstate == PRCURR) {
+			//optr->pstate = PRREADY;//Be careful not to remove it. Read suspend() function code before doing anything here. Never ending recursion
+			(*optr)->pstate = PRREADY;
+			dequeue(currpid);
+			//// 
+			//pprio to goodness
+			//insert(currpid,rdyhead,optr->goodness);
+			//suspend(currpid);
+			////
+			
+		}
+	
+	}else{
+		/* no switch needed if current process goodness higher than next*/
+
+		if ( ( (*optr)->pstate == PRCURR) &&
+		////pprio to goodness
+		   (lastkey(rdytail)<(*optr)->goodness)) {
+		////
+			return(OK);
+		}
+
+		/* force context switch */
+
+		if ((*optr)->pstate == PRCURR) {
+			(*optr)->pstate = PRREADY;
+			//// 
+			//pprio to goodness
+			insert(currpid,rdyhead,(*optr)->goodness);
+			//Reduce quantum by used value.
+			//epoch-= optr->quantum - preempt;
+			//optr->quantum =preempt;
+			////
+		}
+	}
+	
+	if(EMPTY==(currpid = getlast(rdytail)) || 0>=epoch){
+		register struct pentry *pptr;
+		int i;
+		epoch = 0;
+		for(i=1;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
+			if((pptr = & proctab[i])->pstate != PRFREE){
+				//epoch+ = pptr->pprio;
+				pptr->goodness = (pptr->quantum <= 0)?pptr->pprio:(pptr->pprio + pptr->quantum);
+				epoch+= pptr->quantum = (pptr->quantum <=0)?pptr->pprio:(pptr->pprio + (pptr->quantum)/2);
+				pptr->tPriority = pptr->pprio;
+				
+			}
+			if(pptr->pstate == PRREADY){
+				// enqueue or insert
+				insert(i,rdyhead,pptr->goodness);
+			}
+		}
+		currpid = getlast(rdytail);
+	}
+	
+	/* remove highest priority process at end of ready list */
+
+	*nptr = &proctab[ currpid ];
+	(*nptr)->pstate = PRCURR;		/* mark it currently running	*/
+	#ifdef	RTCLOCK
+	preempt = (*nptr)->quantum;		/* reset preemption counter	*/
+	#endif
+	return (!OK);//i.e., CONTINUE
+}	
 
 
 int resched()
 {
-	register struct	pentry	*optr;	/* pointer to old process entry */
-	register struct	pentry	*nptr;	/* pointer to new process entry */
+	 struct	pentry	*optr;	/* pointer to old process entry */
+	 struct	pentry	*nptr;	/* pointer to new process entry */
 	if(0==numproc){
 		optr= &proctab[currpid];
 		getlast(rdytail);
@@ -40,81 +115,9 @@ int resched()
 
 	}else{
 		if(schedClass == LINUXSCHED){
-			
+			if (fLinuxSched(&optr,&nptr) == OK) return OK;
 
-				////
-			//Reduce quantum by used value.
-				epoch-= ((optr= &proctab[currpid])->quantum - preempt);
-				//kprintf("%s Process: %d Initial Quantum, %d Left Quantum(Preempt)\r\n",optr->pname,optr->quantum,preempt);
-				optr->quantum = preempt;
-				optr->goodness = (optr->quantum == 0)?0:(optr->tPriority + optr->quantum);
-			////
 			
-			if(0>=preempt){
-				/* force context switch */
-				if (optr->pstate == PRCURR) {
-					//optr->pstate = PRREADY;//Be careful not to remove it. Read suspend() function code before doing anything here. Never ending recursion
-					optr->pstate = PRREADY;
-					dequeue(currpid);
-					//// 
-					//pprio to goodness
-					//insert(currpid,rdyhead,optr->goodness);
-					//suspend(currpid);
-					////
-					
-				}
-			
-			}else{
-				/* no switch needed if current process goodness higher than next*/
-
-				if ( ( optr->pstate == PRCURR) &&
-				////pprio to goodness
-				   (lastkey(rdytail)<optr->goodness)) {
-				////
-					return(OK);
-				}
-
-				/* force context switch */
-
-				if (optr->pstate == PRCURR) {
-					optr->pstate = PRREADY;
-					//// 
-					//pprio to goodness
-					insert(currpid,rdyhead,optr->goodness);
-					//Reduce quantum by used value.
-					//epoch-= optr->quantum - preempt;
-					//optr->quantum =preempt;
-					////
-				}
-			}
-			
-			if(EMPTY==(currpid = getlast(rdytail)) || 0>=epoch){
-				register struct pentry *pptr;
-				int i;
-				epoch = 0;
-				for(i=1;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
-					if((pptr = & proctab[i])->pstate != PRFREE){
-						//epoch+ = pptr->pprio;
-						pptr->goodness = (pptr->quantum <= 0)?pptr->pprio:(pptr->pprio + pptr->quantum);
-						epoch+= pptr->quantum = (pptr->quantum <=0)?pptr->pprio:(pptr->pprio + (pptr->quantum)/2);
-						pptr->tPriority = pptr->pprio;
-						
-					}
-					if(pptr->pstate == PRREADY){
-						// enqueue or insert
-						insert(i,rdyhead,pptr->goodness);
-					}
-				}
-				currpid = getlast(rdytail);
-			}
-			
-			/* remove highest priority process at end of ready list */
-
-			nptr = &proctab[ currpid ];
-			nptr->pstate = PRCURR;		/* mark it currently running	*/
-			#ifdef	RTCLOCK
-			preempt = nptr->quantum;		/* reset preemption counter	*/
-			#endif
 		}else if(schedClass == MULTIQSCHED){
 			//random
 			//if random 70%
