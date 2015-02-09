@@ -64,6 +64,7 @@ struct	pentry	{
 	int quantum;	/*Quantum of epoch left for the process*/
 	int goodness;	/*Goodness of the process*/
 	int realtime;	/*Bool Value. (PA1 : Part 2)*/
+	int tPriority;
 	////
 };
 

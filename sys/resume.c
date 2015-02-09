@@ -22,8 +22,9 @@ SYSCALL resume(int pid)
 	}
 	prio = pptr->pprio;
 	////
-	//ready(pid, RESCHNO); // So that, the newly created process is not executed untill the next epoch
-	pptr->pstate = PRREADY;
+	//
+	if(schedClass != LINUXSCHED && schedClass != MULTIQSCHED) ready(pid, RESCHNO); // So that, the newly created process is not executed untill the next epoch
+	else pptr->pstate = PRREADY;
 	////
 	restore(ps);
 	return(prio);

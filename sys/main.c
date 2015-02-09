@@ -1,6 +1,6 @@
 #include <conf.h>
 #include <kernel.h>
-//#include <sched.h>
+#include <sched.h>
 #include <stdio.h>
 
 #define LOOP 50

@@ -8,7 +8,7 @@
 #include <mem.h>
 #include <io.h>
 #include <stdio.h>
-
+#include <sched.h>
 LOCAL int newpid();
 
 /*------------------------------------------------------------------------
@@ -71,6 +71,7 @@ SYSCALL create(procaddr,ssize,priority,name,nargs,args)
 	pptr->goodness = 0;
 	pptr->quantum = 0;
 	pptr->realtime = FALSE;
+	pptr->tPriority = 0;
 	////
 		
 		/* Bottom of stack */
@@ -126,7 +127,9 @@ SYSCALL createReal(procaddr,ssize,priority,name,nargs,args)
 	long	args;			/* arguments (treated like an	*/
 					/* array in the code)		*/
 {
-	
+	if(LINUXSCHED == schedClass){
+		return(SYSERR);
+	}
 	unsigned long	savsp, *pushsp;
 	STATWORD 	ps;    
 	int		pid;		/* stores new process id	*/
@@ -180,6 +183,7 @@ SYSCALL createReal(procaddr,ssize,priority,name,nargs,args)
 	pptr->goodness = 0;
 	pptr->quantum = 0;
 	pptr->realtime = TRUE;
+	pptr->tPriority = 0;
 	////
 		
 		/* Bottom of stack */

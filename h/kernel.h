@@ -5,8 +5,11 @@
 
 ////
 /* Scheduling classes */
+#ifndef _SCHED_CLASSES_
+#define _SCHED_CLASSES_
 #define LINUXSCHED 1
 #define MULTIQSCHED 2 
+#endif
 ////
 
 
@@ -164,10 +167,7 @@ SYSCALL stacktrace(int pid);
 SYSCALL	suspend(int pid);
 SYSCALL	unsleep(int pid);
 SYSCALL	wait(int sem);
-////
-SYSCALL setschedclass(int valSchedClass);
-SYSCALL getschedclass(void);
-////
+
 int strtclk();
 int stopclk();
 

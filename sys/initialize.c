@@ -13,7 +13,7 @@
 #include <q.h>
 #include <io.h>
 #include <stdio.h>
-
+#include <sched.h>
 /*#define DETAIL */
 #define HOLESIZE	(600)	
 #define	HOLESTART	(640 * 1024)
@@ -114,13 +114,15 @@ int nulluser()				/* babysit CPU when no one home */
 	enable();		/* enable interrupts */
 
 	open(CONSOLE, console_dev, 0);
-	kprintf("numproc = %d\r\n",numproc);
+	//kprintf("numproc = %d\r\n",numproc);
 	/* create a process to execute the user's main program */
         resume(create((int *)main,INITSTK,INITPRIO,INITNAME,INITARGS));
-		//resched(); //reschd called when preempt hits 0.
-		kprintf("numproc = %d\r\n",numproc);
-	while (TRUE)
-		/* empty */;
+		
+		
+		resched(); //reschd called when preempt hits 0.
+		//kprintf("numproc = %d\r\n",numproc);
+	while (TRUE);
+		/* empty */kprintf("N");
 }
 
 /*------------------------------------------------------------------------
@@ -139,7 +141,7 @@ LOCAL int sysinit()
 	nextsem = NSEM-1;
 	nextqueue = NPROC;		/* q[0..NPROC-1] are processes */
 	////
-	setschedclass(LINUXSCHED);
+	//setschedclass(LINUXSCHED);
 	////
 	/* initialize free memory list */
 	/* PC version has to pre-allocate 640K-1024K "hole" */
@@ -181,6 +183,7 @@ LOCAL int sysinit()
 	pptr->goodness = 0;
 	pptr->quantum = QUANTUM;//Whenever, NULL process runs, it will run with quantum of 10.
 	pptr->realtime = 0;
+	pptr->tPriority = 0;
 	////
 	epoch = QUANTUM;
 	currpid = NULLPROC;
