@@ -29,7 +29,7 @@ int resched()
 	register struct	pentry	*nptr;	/* pointer to new process entry */
 	static int inSchedClass = !REALTIME;
 	if(0==numproc){
-		kprintf('Null');
+		//kprintf("Null");
 		optr= &proctab[currpid];
 		optr->pstate = PRFREE;
 		//getlast(rdytail);
@@ -74,10 +74,15 @@ int resched()
 				}
 			}
 			
-			if(0>=(currpid = getlast(rdytail)) || 0>=epoch){//Is second condition a necessity?
+			if(0>=(currpid = getlast(rdytail)) || 0>=epoch){//Is second condition a necessity? Instead a COUNT of ready process.
 				register struct pentry *pptr;
 				int i;
+				//kprintf("e=%d",epoch);
 				epoch = 0;
+				(pptr = &proctab[0]) -> goodness = 0;
+				epoch+= pptr->quantum = QUANTUM;
+				(pptr->tPriority) = 0;
+				insert(0,rdyhead,pptr->goodness);
 				for(i=1;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
 					if((pptr = & proctab[i])->pstate != PRFREE){
 						//epoch+ = pptr->pprio;
@@ -91,6 +96,7 @@ int resched()
 						insert(i,rdyhead,pptr->goodness);
 					}
 				}
+				//kprintf("e=%d",epoch);
 				currpid = getlast(rdytail);
 			}
 			
@@ -106,26 +112,18 @@ int resched()
 			epoch-= ((optr= &proctab[currpid])->quantum - preempt);
 			//kprintf("%s Process: %d Initial Quantum, %d Left Quantum(Preempt)\r\n",optr->pname,optr->quantum,preempt);
 			optr->quantum = preempt;
+			if(inSchedClass != REALTIME) optr->goodness = (optr->quantum == 0)?0:(optr->tPriority + optr->quantum);
+
 			if(0>=preempt){
 				/* force context switch */
 				if (optr->pstate == PRCURR) {
-					//optr->pstate = PRREADY;//Be careful not to remove it. Read suspend() function code before doing anything here. Never ending recursion
 					optr->pstate = PRREADY;
-					dequeue(currpid);
-					//// 
-					//pprio to goodness
-					//insert(currpid,rdyhead,optr->goodness);
-					//suspend(currpid);
-					////
-					
 				}
 			
 			}else{
 				if(inSchedClass != REALTIME){
-					if ( ( optr->pstate == PRCURR) &&
+					if ( ( optr->pstate == PRCURR) && (lastkey(rdytail)<optr->goodness)) {
 					////pprio to goodness
-					   (lastkey(rdytail)<optr->goodness)) {
-					////
 						return(OK);
 					}
 
@@ -136,11 +134,9 @@ int resched()
 						//// 
 						//pprio to goodness
 						insert(currpid,rdyhead,optr->goodness);
-						//Reduce quantum by used value.
-						//epoch-= optr->quantum - preempt;
-						//optr->quantum =preempt;
-						////
 					}
+				}else{//realtime
+					if (optr->pstate == PRCURR) return(OK);//i.e., The current process is still executable. If not, resched.
 				}
 			}
 			if(0>=(currpid = getlast(rdytail)) || 0>=epoch){
@@ -151,17 +147,19 @@ int resched()
 						register struct pentry *pptr;
 						int i;
 						epoch = 0;
-						for(i=0;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
+						epoch+= (pptr = &proctab[0]) -> quantum = QUANTUM;
+						insert(0,rdyhead,0);
+						for(i=1;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
 							if((pptr = & proctab[i])->pstate != PRFREE && pptr->realtime == REALTIME){
 								//epoch+ = pptr->pprio;
-								pptr->goodness = (pptr->quantum <= 0)?pptr->pprio:(pptr->pprio + pptr->quantum);
-								epoch+= pptr->quantum = (pptr->quantum <=0)?pptr->pprio:(pptr->pprio + (pptr->quantum)/2);
-								pptr->tPriority = pptr->pprio;
+								//pptr->goodness = (pptr->quantum <= 0)?pptr->pprio:(pptr->pprio + pptr->quantum);
+								epoch+= pptr->quantum = QUANTUM*QUANTUM;
+								//pptr->tPriority = pptr->pprio;
 								
 							}
 							if(pptr->pstate == PRREADY && pptr->realtime == REALTIME){
 								// enqueue or insert
-								insert(i,rdyhead,pptr->goodness);
+								insert(i,rdyhead,1);
 							}
 						}
 						visitedBothQueue|=1;
@@ -170,7 +168,11 @@ int resched()
 						register struct pentry *pptr;
 						int i;
 						epoch = 0;
-						for(i=0;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
+						(pptr = &proctab[0]) -> goodness = 0;
+						epoch+= pptr->quantum = QUANTUM;
+						(pptr->tPriority) = 0;
+						insert(0,rdyhead,pptr->goodness);
+						for(i=1;i<NPROC;i++){//// '1', To avoid counting NULL process quantum
 							if((pptr = & proctab[i])->pstate != PRFREE && pptr->realtime == !REALTIME){
 								//epoch+ = pptr->pprio;
 								pptr->goodness = (pptr->quantum <= 0)?pptr->pprio:(pptr->pprio + pptr->quantum);
@@ -185,9 +187,20 @@ int resched()
 						}
 						visitedBothQueue|=2;
 					}				
-					currpid = getlast(rdytail);
-				}while(currpid <=0 || visitedBothQueue == 3);
+					
+					if((currpid = getlast(rdytail))>0){
+						
+						break;
+					}
+				}while(visitedBothQueue != 3);
+				
+				
 			}
+				nptr = &proctab[ currpid ];
+				nptr->pstate = PRCURR;		/* mark it currently running	*/
+				#ifdef	RTCLOCK
+				preempt = nptr->quantum;		/* reset preemption counter	*/
+				#endif
 		}else{//DEFAULT
 		
 			/* no switch needed if current process priority higher than next*/
@@ -213,6 +226,7 @@ int resched()
 		#endif
 		}
 	}
+	//kprintf("c=%d",currpid);
 	ctxsw((int)&optr->pesp, (int)optr->pirmask, (int)&nptr->pesp, (int)nptr->pirmask);
 	/* The OLD process returns here when resumed. */
 	return OK;
