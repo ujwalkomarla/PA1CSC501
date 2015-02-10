@@ -111,7 +111,11 @@ int resched()
 			//Reduce quantum by used value.
 			epoch-= ((optr= &proctab[currpid])->quantum - preempt);
 			//kprintf("%s Process: %d Initial Quantum, %d Left Quantum(Preempt)\r\n",optr->pname,optr->quantum,preempt);
+			if(REALTIME){
+			optr->quantum -= (QUANTUM - preempt);
+			}else{
 			optr->quantum = preempt;
+			}
 			if(inSchedClass != REALTIME) optr->goodness = (optr->quantum == 0)?0:(optr->tPriority + optr->quantum);
 
 			if(0>=preempt){
@@ -119,6 +123,7 @@ int resched()
 				if (optr->pstate == PRCURR) {
 					optr->pstate = PRREADY;
 				}
+				if(inSchedClass==REALTIME && optr->quantum > 0)  insert(currpid,rdyhead,1);
 			
 			}else{
 				if(inSchedClass != REALTIME){
@@ -199,7 +204,9 @@ int resched()
 				nptr = &proctab[ currpid ];
 				nptr->pstate = PRCURR;		/* mark it currently running	*/
 				#ifdef	RTCLOCK
-				preempt = nptr->quantum;		/* reset preemption counter	*/
+				preempt = nptr->quantum;
+				if(inSchedClass == REALTIME) preempt = (nptr->quantum/QUANTUM > 1)?QUANTUM:nptr->quantum;//kprintf("p=%d",preempt);}
+						/* reset preemption counter	*/
 				#endif
 		}else{//DEFAULT
 		
